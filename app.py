@@ -19,7 +19,11 @@ st.markdown("Predict stress percentage, identify root causes, and receive AI-pow
 # ----------------------------------
 # Load Trained Model
 # ----------------------------------
-model = joblib.load("model/stress_model.pkl")
+@st.cache_resource
+def load_model():
+    return joblib.load("model/stress_model.pkl")
+
+model = load_model()
 
 # ----------------------------------
 # Sidebar Inputs (All 11 Parameters)
@@ -44,7 +48,7 @@ anxiety_level = st.sidebar.slider("Anxiety Level (0-10)", 0, 10, 4)
 if st.button("🔍 Predict Stress Level"):
 
     # Create Input DataFrame
-    input_data = pd.DataFrame([[
+    input_data = pd.DataFrame([[ 
         sleep, work_hours, social_interaction,
         physical_activity, mood, caffeine,
         screen_time, financial_pressure,
@@ -58,14 +62,16 @@ if st.button("🔍 Predict Stress Level"):
         "anxiety_level"
     ])
 
-    # Model Prediction
-    prediction = model.predict(input_data)[0]
-    stress_percentage = round(float(prediction), 2)
+    # ----------------------------------
+    # Model Prediction (Using Probability)
+    # ----------------------------------
+    prediction_proba = model.predict_proba(input_data)[0][1]
+    stress_percentage = round(prediction_proba * 100, 2)
 
     # ----------------------------------
     # Stress Category
     # ----------------------------------
-    if stress_percentage < 35:
+    if stress_percentage < 40:
         category = "Low Stress 😊"
         color = "green"
     elif stress_percentage < 70:
@@ -80,7 +86,7 @@ if st.button("🔍 Predict Stress Level"):
     st.markdown(f"### Category: :{color}[{category}]")
 
     # ----------------------------------
-    # Cause Detection (All 11 Considered)
+    # Cause Detection
     # ----------------------------------
     causes = []
 
@@ -113,7 +119,7 @@ if st.button("🔍 Predict Stress Level"):
         for cause in causes:
             st.write("•", cause)
     else:
-        st.write("No major stress triggers detected.")
+        st.success("No major stress triggers detected. Keep it up! 💚")
 
     # ----------------------------------
     # AI Suggestions
@@ -149,31 +155,31 @@ if st.button("🔍 Predict Stress Level"):
         for suggestion in suggestions:
             st.write("•", suggestion)
     else:
-        st.write("Keep maintaining your healthy routine!")
+        st.info("Keep maintaining your healthy routine! 🌿")
 
     # ----------------------------------
-    # 24-Hour Stress Projection Graph
+    # 24-Hour Stress Projection (Dynamic)
     # ----------------------------------
     st.subheader("📈 24-Hour Stress Projection")
 
     hours = np.arange(0, 25)
 
+    variation_strength = stress_percentage / 5
+
     variation_pattern = np.array([
-        -15, -18, -20, -22, -20,
-        -10, 0, 10, 15, 18,
-        22, 25, 28, 25, 20,
-        15, 10, 5, 0, -5,
-        -8, -10, -12, -15, -18
-    ])
+        -0.6, -0.7, -0.8, -0.9, -0.8,
+        -0.3, 0, 0.3, 0.5, 0.7,
+        0.9, 1.0, 1.2, 1.0, 0.8,
+        0.6, 0.4, 0.2, 0, -0.2,
+        -0.3, -0.4, -0.5, -0.6, -0.7
+    ]) * variation_strength
 
     daily_variation = stress_percentage + variation_pattern
     daily_variation = np.clip(daily_variation, 0, 100)
 
     fig, ax = plt.subplots(figsize=(10, 5))
-
     ax.plot(hours, daily_variation, linewidth=3, marker="o")
     ax.fill_between(hours, daily_variation, alpha=0.2)
-
     ax.axhline(stress_percentage, linestyle="--", linewidth=1)
 
     ax.set_title("Projected Stress Fluctuation Over 24 Hours")
@@ -184,6 +190,24 @@ if st.button("🔍 Predict Stress Level"):
     ax.grid(True, linestyle="--", alpha=0.5)
 
     st.pyplot(fig)
+
+    # ----------------------------------
+    # Pie Chart Distribution
+    # ----------------------------------
+    st.subheader("📊 Stress Distribution Overview (24h)")
+
+    low = sum(1 for x in daily_variation if x < 40)
+    moderate = sum(1 for x in daily_variation if 40 <= x < 70)
+    high = sum(1 for x in daily_variation if x >= 70)
+
+    labels = ["Low", "Moderate", "High"]
+    sizes = [low, moderate, high]
+
+    fig2, ax2 = plt.subplots()
+    ax2.pie(sizes, labels=labels, autopct="%1.1f%%")
+    ax2.set_title("Stress Category Distribution Over 24 Hours")
+
+    st.pyplot(fig2)
 
 # ----------------------------------
 # Footer
