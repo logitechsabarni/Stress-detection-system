@@ -164,11 +164,9 @@ if st.button("🔍 Predict Stress Level"):
     # 24-Hour Dynamic Projection
     # ----------------------------------
     st.subheader("📈 24-Hour Stress Projection")
-
     hours = np.arange(0, 25)
-    amplitude = stress_percentage / 5
+    amplitude = (stress_percentage / 100) * 20
     variation = np.sin(np.linspace(0, 2*np.pi, 25)) * amplitude
-
     projection = np.clip(stress_percentage + variation, 0, 100)
 
     fig2, ax2 = plt.subplots(figsize=(10,5))
@@ -185,41 +183,79 @@ if st.button("🔍 Predict Stress Level"):
     # ----------------------------------
     # AI Recommendations
     # ----------------------------------
-    st.subheader("🤖 AI-Based Personalized Recommendations")
+    st.subheader("🧠 Detailed AI Psychological Analysis")
 
-    suggestions = []
+    analysis = []
+    recommendations = []
 
-    if sleep < 6:
-        suggestions.append("Increase sleep to 7–8 hours.")
-    if work_hours > 9:
-        suggestions.append("Reduce overworking and take structured breaks.")
-    if social_interaction < 4:
-        suggestions.append("Engage in more social interaction.")
-    if physical_activity < 4:
-        suggestions.append("Include 30 minutes of exercise daily.")
-    if mood < 5:
-        suggestions.append("Practice mindfulness or journaling.")
-    if caffeine > 4:
-        suggestions.append("Reduce caffeine intake gradually.")
-    if screen_time > 9:
-        suggestions.append("Adopt digital detox habits.")
-    if financial_pressure > 6:
-        suggestions.append("Create a budget management plan.")
-    if work_pressure > 6:
-        suggestions.append("Use task prioritization frameworks.")
-    if relationship_stress > 6:
-        suggestions.append("Improve communication in relationships.")
+    def check(param, value, low, high, high_msg, low_msg, rec):
+        if value > high:
+            analysis.append(f"🔴 {high_msg}")
+            recommendations.append(rec)
+        elif value < low:
+            analysis.append(f"🟡 {low_msg}")
+        else:
+            analysis.append(f"🟢 {param} is within healthy range.")
+
+    check("Sleep", sleep, 6, 9,
+          "Low Sleep causing cortisol imbalance.",
+          "Oversleeping may signal fatigue.",
+          "Maintain 7–8 hours sleep schedule.")
+
+    check("Work Hours", work_hours, 4, 9,
+          "Excessive Workload increasing stress hormones.",
+          "Low engagement may reduce productivity.",
+          "Use structured time management.")
+
+    check("Caffeine", caffeine, 0, 4,
+          "High caffeine increasing anxiety levels.",
+          "Very low caffeine (no issue).",
+          "Limit caffeine to 1–2 cups daily.")
+
+    check("Screen Time", screen_time, 2, 9,
+          "High screen exposure affecting mental recovery.",
+          "Very low digital engagement.",
+          "Implement digital detox before sleep.")
+
     if anxiety_level > 6:
-        suggestions.append("Practice breathing exercises & meditation.")
+        analysis.append("🔴 Elevated anxiety strongly contributing to stress.")
+        recommendations.append("Practice breathing techniques & meditation.")
+
+    if relationship_stress > 6:
+        analysis.append("🔴 Relationship conflicts detected.")
+        recommendations.append("Encourage open communication & boundary setting.")
+
+    if financial_pressure > 6:
+        analysis.append("🔴 Financial stress impacting mental balance.")
+        recommendations.append("Create structured budgeting strategy.")
+
+    if mood < 5:
+        analysis.append("🔴 Low mood reducing emotional resilience.")
+        recommendations.append("Practice gratitude journaling.")
+
+    if physical_activity < 4:
+        analysis.append("🔴 Low physical movement reducing endorphins.")
+        recommendations.append("Add 30 mins daily exercise.")
+
+    if social_interaction < 4:
+        analysis.append("🔴 Social isolation risk detected.")
+        recommendations.append("Increase quality social interaction.")
+
+    # Show Analysis
+    st.markdown("### 🔍 Parameter Insights")
+    for item in analysis:
+        st.write(item)
+
+    # Show Recommendations
+    st.markdown("### 🤖 AI Personalized Recommendations")
+    if recommendations:
+        for rec in set(recommendations):
+            st.write("•", rec)
+    else:
+        st.success("Your lifestyle parameters are well balanced. Keep maintaining this routine!")
 
     if stress_percentage > 75:
-        suggestions.append("Consider consulting a mental health professional.")
-
-    if suggestions:
-        for s in suggestions:
-            st.write("•", s)
-    else:
-        st.success("Your lifestyle indicators are balanced. Keep it up!")
+        st.error("⚠️ Consider consulting a mental health professional if high stress persists.")
 
 # ----------------------------------
 # Footer
