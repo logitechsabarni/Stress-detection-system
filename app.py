@@ -1,11 +1,12 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import joblib
 import matplotlib.pyplot as plt
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split
 
 # ----------------------------------
-# Page Configuration
+# Page Config
 # ----------------------------------
 st.set_page_config(
     page_title="AI Stress Detection System",
@@ -14,21 +15,85 @@ st.set_page_config(
 )
 
 st.title("🧠 AI-Based Stress Detection & Measuring System")
-st.markdown("Predict stress percentage, identify root causes, and receive AI-powered recommendations.")
+st.markdown("Predict stress percentage, detect root causes & receive AI recommendations.")
 
 # ----------------------------------
-# Load Trained Model
+# Generate Synthetic Dataset
 # ----------------------------------
+
+@st.cache_data
+def generate_data(n=2000):
+    np.random.seed(42)
+
+    sleep = np.random.randint(2, 9, n)
+    work_hours = np.random.randint(4, 16, n)
+    social_interaction = np.random.randint(0, 10, n)
+    physical_activity = np.random.randint(0, 10, n)
+    mood = np.random.randint(1, 10, n)
+    caffeine = np.random.randint(0, 6, n)
+    screen_time = np.random.randint(2, 14, n)
+    financial_pressure = np.random.randint(0, 10, n)
+    work_pressure = np.random.randint(0, 10, n)
+    relationship_stress = np.random.randint(0, 10, n)
+    anxiety_level = np.random.randint(0, 10, n)
+
+    stress_percentage = (
+        (work_hours / 16) * 15 +
+        (screen_time / 14) * 10 +
+        (caffeine / 6) * 5 +
+        ((9 - sleep) / 9) * 15 +
+        (work_pressure / 10) * 15 +
+        (financial_pressure / 10) * 10 +
+        (relationship_stress / 10) * 10 +
+        (anxiety_level / 10) * 10 +
+        ((10 - social_interaction) / 10) * 5 +
+        ((10 - physical_activity) / 10) * 3 +
+        ((10 - mood) / 10) * 7
+    )
+
+    stress_percentage += np.random.normal(0, 5, n)
+    stress_percentage = np.clip(stress_percentage, 0, 100)
+
+    df = pd.DataFrame({
+        "sleep": sleep,
+        "work_hours": work_hours,
+        "social_interaction": social_interaction,
+        "physical_activity": physical_activity,
+        "mood": mood,
+        "caffeine": caffeine,
+        "screen_time": screen_time,
+        "financial_pressure": financial_pressure,
+        "work_pressure": work_pressure,
+        "relationship_stress": relationship_stress,
+        "anxiety_level": anxiety_level,
+        "stress_percentage": stress_percentage
+    })
+
+    return df
+
+
+# ----------------------------------
+# Train Model
+# ----------------------------------
+
 @st.cache_resource
-def load_model():
-    return joblib.load("model/stress_model.pkl")
+def train_model():
+    df = generate_data()
+    X = df.drop("stress_percentage", axis=1)
+    y = df["stress_percentage"]
 
-model = load_model()
+    model = RandomForestRegressor(n_estimators=200, random_state=42)
+    model.fit(X, y)
+    return model
+
+
+model = train_model()
 
 # ----------------------------------
-# Sidebar Inputs (All 11 Parameters)
+# Sidebar Inputs
 # ----------------------------------
-st.sidebar.header("📋 Enter Daily Lifestyle Parameters")
+
+st.sidebar.header("📋 Enter Lifestyle Parameters")
 
 sleep = st.sidebar.slider("Sleep Hours", 0, 12, 6)
 work_hours = st.sidebar.slider("Work Hours", 0, 16, 8)
@@ -43,35 +108,25 @@ relationship_stress = st.sidebar.slider("Relationship Stress (0-10)", 0, 10, 3)
 anxiety_level = st.sidebar.slider("Anxiety Level (0-10)", 0, 10, 4)
 
 # ----------------------------------
-# Prediction Button
+# Prediction
 # ----------------------------------
+
 if st.button("🔍 Predict Stress Level"):
 
-    # Create Input DataFrame
-    input_data = pd.DataFrame([[ 
-        sleep, work_hours, social_interaction,
-        physical_activity, mood, caffeine,
-        screen_time, financial_pressure,
-        work_pressure, relationship_stress,
-        anxiety_level
+    input_df = pd.DataFrame([[ 
+        sleep, work_hours, social_interaction, physical_activity, mood,
+        caffeine, screen_time, financial_pressure, work_pressure,
+        relationship_stress, anxiety_level
     ]], columns=[
-        "sleep", "work_hours", "social_interaction",
-        "physical_activity", "mood", "caffeine",
-        "screen_time", "financial_pressure",
-        "work_pressure", "relationship_stress",
-        "anxiety_level"
+        "sleep", "work_hours", "social_interaction", "physical_activity",
+        "mood", "caffeine", "screen_time", "financial_pressure",
+        "work_pressure", "relationship_stress", "anxiety_level"
     ])
 
-    # ----------------------------------
-    # Model Prediction (Using Probability)
-    # ----------------------------------
-    prediction_proba = model.predict_proba(input_data)[0][1]
-    stress_percentage = round(prediction_proba * 100, 2)
+    stress_percentage = round(float(model.predict(input_df)[0]), 2)
 
-    # ----------------------------------
-    # Stress Category
-    # ----------------------------------
-    if stress_percentage < 40:
+    # Category
+    if stress_percentage < 35:
         category = "Low Stress 😊"
         color = "green"
     elif stress_percentage < 70:
@@ -86,131 +141,44 @@ if st.button("🔍 Predict Stress Level"):
     st.markdown(f"### Category: :{color}[{category}]")
 
     # ----------------------------------
-    # Cause Detection
+    # Pie Chart
     # ----------------------------------
-    causes = []
 
-    if sleep < 5:
-        causes.append("Lack of Sleep")
-    if work_hours > 10:
-        causes.append("Overworking")
-    if social_interaction < 3:
-        causes.append("Low Social Interaction")
-    if physical_activity < 3:
-        causes.append("Low Physical Activity")
-    if mood < 4:
-        causes.append("Low Mood")
-    if caffeine > 4:
-        causes.append("High Caffeine Intake")
-    if screen_time > 10:
-        causes.append("Excessive Screen Time")
-    if financial_pressure > 6:
-        causes.append("Financial Pressure")
-    if work_pressure > 7:
-        causes.append("High Work Pressure")
-    if relationship_stress > 6:
-        causes.append("Relationship Stress")
-    if anxiety_level > 6:
-        causes.append("High Anxiety Level")
+    st.subheader("📊 Stress Composition")
 
-    st.subheader("⚠️ Detected Stress Causes")
+    labels = ["Healthy Portion", "Stress Portion"]
+    values = [100 - stress_percentage, stress_percentage]
 
-    if causes:
-        for cause in causes:
-            st.write("•", cause)
-    else:
-        st.success("No major stress triggers detected. Keep it up! 💚")
+    fig1, ax1 = plt.subplots()
+    ax1.pie(values, labels=labels, autopct="%1.1f%%")
+    st.pyplot(fig1)
 
     # ----------------------------------
-    # AI Suggestions
+    # 24 Hour Projection
     # ----------------------------------
-    st.subheader("💡 AI-Based Recommendations")
 
-    suggestions = []
-
-    if "Lack of Sleep" in causes:
-        suggestions.append("Maintain a consistent 7–8 hour sleep schedule.")
-    if "Overworking" in causes:
-        suggestions.append("Introduce structured breaks during work.")
-    if "Low Social Interaction" in causes:
-        suggestions.append("Engage in meaningful daily conversations.")
-    if "Low Physical Activity" in causes:
-        suggestions.append("Include at least 30 minutes of exercise.")
-    if "Low Mood" in causes:
-        suggestions.append("Practice journaling or mindfulness.")
-    if "High Caffeine Intake" in causes:
-        suggestions.append("Gradually reduce caffeine consumption.")
-    if "Excessive Screen Time" in causes:
-        suggestions.append("Follow the 20-20-20 rule and digital detox.")
-    if "Financial Pressure" in causes:
-        suggestions.append("Create a structured budget and savings plan.")
-    if "High Work Pressure" in causes:
-        suggestions.append("Use task prioritization frameworks.")
-    if "Relationship Stress" in causes:
-        suggestions.append("Communicate openly and resolve conflicts calmly.")
-    if "High Anxiety Level" in causes:
-        suggestions.append("Practice breathing exercises and meditation.")
-
-    if suggestions:
-        for suggestion in suggestions:
-            st.write("•", suggestion)
-    else:
-        st.info("Keep maintaining your healthy routine! 🌿")
-
-    # ----------------------------------
-    # 24-Hour Stress Projection (Dynamic)
-    # ----------------------------------
     st.subheader("📈 24-Hour Stress Projection")
 
     hours = np.arange(0, 25)
 
-    variation_strength = stress_percentage / 5
+    variation = np.sin(np.linspace(0, 2*np.pi, 25)) * 15
+    daily_variation = np.clip(stress_percentage + variation, 0, 100)
 
-    variation_pattern = np.array([
-        -0.6, -0.7, -0.8, -0.9, -0.8,
-        -0.3, 0, 0.3, 0.5, 0.7,
-        0.9, 1.0, 1.2, 1.0, 0.8,
-        0.6, 0.4, 0.2, 0, -0.2,
-        -0.3, -0.4, -0.5, -0.6, -0.7
-    ]) * variation_strength
-
-    daily_variation = stress_percentage + variation_pattern
-    daily_variation = np.clip(daily_variation, 0, 100)
-
-    fig, ax = plt.subplots(figsize=(10, 5))
-    ax.plot(hours, daily_variation, linewidth=3, marker="o")
-    ax.fill_between(hours, daily_variation, alpha=0.2)
-    ax.axhline(stress_percentage, linestyle="--", linewidth=1)
-
-    ax.set_title("Projected Stress Fluctuation Over 24 Hours")
-    ax.set_xlabel("Hour of Day")
-    ax.set_ylabel("Predicted Stress Level (%)")
-    ax.set_xticks(range(0, 25))
-    ax.set_ylim(0, 100)
-    ax.grid(True, linestyle="--", alpha=0.5)
-
-    st.pyplot(fig)
-
-    # ----------------------------------
-    # Pie Chart Distribution
-    # ----------------------------------
-    st.subheader("📊 Stress Distribution Overview (24h)")
-
-    low = sum(1 for x in daily_variation if x < 40)
-    moderate = sum(1 for x in daily_variation if 40 <= x < 70)
-    high = sum(1 for x in daily_variation if x >= 70)
-
-    labels = ["Low", "Moderate", "High"]
-    sizes = [low, moderate, high]
-
-    fig2, ax2 = plt.subplots()
-    ax2.pie(sizes, labels=labels, autopct="%1.1f%%")
-    ax2.set_title("Stress Category Distribution Over 24 Hours")
+    fig2, ax2 = plt.subplots(figsize=(10,5))
+    ax2.plot(hours, daily_variation, marker="o")
+    ax2.fill_between(hours, daily_variation, alpha=0.3)
+    ax2.set_xticks(range(0,25))
+    ax2.set_ylim(0,100)
+    ax2.set_xlabel("Hour of Day")
+    ax2.set_ylabel("Stress Level (%)")
+    ax2.set_title("Projected Daily Stress Fluctuation")
+    ax2.grid(True)
 
     st.pyplot(fig2)
 
 # ----------------------------------
 # Footer
 # ----------------------------------
+
 st.markdown("---")
-st.markdown("Built with ❤️ using Streamlit & Machine Learning by Sabarni Guha")
+st.markdown("Built with ❤️ using Machine Learning & Streamlit")
