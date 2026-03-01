@@ -159,3 +159,6 @@ This system helps:
 
 Machine Learning + Streamlit  
 Designed for awareness, prevention, and intelligent stress monitoring.
+
+
+The link to the app is:- https://stress-detection-system-ihvfe7kbg2meaz3zdrzuiz.streamlit.app/
