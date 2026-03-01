@@ -7,31 +7,35 @@ from sklearn.ensemble import RandomForestRegressor
 # ----------------------------------
 # Page Config
 # ----------------------------------
-st.set_page_config(page_title="AI Stress Detection System", page_icon="🧠", layout="wide")
+st.set_page_config(
+    page_title="AI Stress Detection System",
+    page_icon="🧠",
+    layout="wide"
+)
 
 st.title("🧠 AI-Based Stress Detection & Measuring System")
-st.markdown("Predict stress percentage, identify root causes, and receive AI-powered recommendations.")
+st.markdown("Predict stress percentage, analyze psychological triggers, and receive personalized AI-driven recommendations.")
 
 # ----------------------------------
-# Generate Synthetic Training Data
+# Train Synthetic Model
 # ----------------------------------
 @st.cache_resource
 def train_model():
 
     np.random.seed(42)
-    data_size = 2000
+    size = 2500
 
-    sleep = np.random.randint(2, 10, data_size)
-    work_hours = np.random.randint(4, 16, data_size)
-    social_interaction = np.random.randint(0, 10, data_size)
-    physical_activity = np.random.randint(0, 10, data_size)
-    mood = np.random.randint(1, 10, data_size)
-    caffeine = np.random.randint(0, 8, data_size)
-    screen_time = np.random.randint(2, 14, data_size)
-    financial_pressure = np.random.randint(0, 10, data_size)
-    work_pressure = np.random.randint(0, 10, data_size)
-    relationship_stress = np.random.randint(0, 10, data_size)
-    anxiety_level = np.random.randint(0, 10, data_size)
+    sleep = np.random.randint(2, 10, size)
+    work_hours = np.random.randint(4, 16, size)
+    social_interaction = np.random.randint(0, 10, size)
+    physical_activity = np.random.randint(0, 10, size)
+    mood = np.random.randint(1, 10, size)
+    caffeine = np.random.randint(0, 8, size)
+    screen_time = np.random.randint(2, 14, size)
+    financial_pressure = np.random.randint(0, 10, size)
+    work_pressure = np.random.randint(0, 10, size)
+    relationship_stress = np.random.randint(0, 10, size)
+    anxiety_level = np.random.randint(0, 10, size)
 
     stress_score = (
         (10 - sleep) * 3 +
@@ -67,7 +71,7 @@ def train_model():
     X = df.drop("stress_percentage", axis=1)
     y = df["stress_percentage"]
 
-    model = RandomForestRegressor()
+    model = RandomForestRegressor(n_estimators=200, random_state=42)
     model.fit(X, y)
 
     return model
@@ -113,37 +117,32 @@ if st.button("🔍 Predict Stress Level"):
     stress_percentage = round(float(model.predict(input_df)[0]), 2)
 
     # ----------------------------------
-    # Stress Category
+    # Category
     # ----------------------------------
     if stress_percentage < 35:
         category = "Low Stress 😊"
-        color = "green"
-        explanation = "You are maintaining a healthy and balanced routine."
+        explanation = "Your mental balance appears stable with minimal psychological strain."
     elif stress_percentage < 70:
         category = "Moderate Stress ⚠️"
-        color = "orange"
-        explanation = "Your stress is noticeable. Lifestyle adjustments recommended."
+        explanation = "Noticeable stress patterns detected. Lifestyle optimization recommended."
     else:
         category = "High Stress 🔴"
-        color = "red"
-        explanation = "Your stress level is significantly high. Immediate intervention advised."
+        explanation = "Significant stress accumulation detected. Immediate corrective action advised."
 
     st.subheader("📊 Stress Prediction Result")
     st.markdown(f"### Predicted Stress Level: `{stress_percentage}%`")
-    st.markdown(f"### Category: :{color}[{category}]")
+    st.markdown(f"### Category: {category}")
     st.info(explanation)
 
     # ----------------------------------
-    # Pie Chart (All 11 Parameters)
+    # Contribution Analysis
     # ----------------------------------
-    st.subheader("📊 Stress Contribution Breakdown")
-
     contributions = {
-        "Sleep": (10 - sleep) * 3,
+        "Sleep Deficit": (10 - sleep) * 3,
         "Work Hours": work_hours * 2,
-        "Social Interaction": (10 - social_interaction) * 1.5,
-        "Physical Activity": (10 - physical_activity) * 1.5,
-        "Mood": (10 - mood) * 2,
+        "Low Social Interaction": (10 - social_interaction) * 1.5,
+        "Low Physical Activity": (10 - physical_activity) * 1.5,
+        "Low Mood": (10 - mood) * 2,
         "Caffeine": caffeine * 1.5,
         "Screen Time": screen_time * 1.5,
         "Financial Pressure": financial_pressure * 2,
@@ -152,110 +151,126 @@ if st.button("🔍 Predict Stress Level"):
         "Anxiety Level": anxiety_level * 3
     }
 
+    # Horizontal Bar Chart
+    st.subheader("📊 Stress Contribution Analysis")
+    sorted_contrib = dict(sorted(contributions.items(), key=lambda x: x[1], reverse=True))
+    fig, ax = plt.subplots(figsize=(8,6))
+    ax.barh(list(sorted_contrib.keys()), list(sorted_contrib.values()), color="skyblue")
+    ax.invert_yaxis()
+    ax.set_xlabel("Impact Score")
+    ax.set_title("Parameter Contribution to Stress")
+    st.pyplot(fig)
+
+    # Pie Chart
+    st.subheader("📊 Stress Contribution Breakdown (Pie Chart)")
     labels = list(contributions.keys())
     values = list(contributions.values())
-
     fig1, ax1 = plt.subplots(figsize=(7,7))
-    ax1.pie(values, labels=labels, autopct="%1.1f%%")
+    ax1.pie(values, labels=labels, autopct="%1.1f%%", startangle=140)
     ax1.set_title("Stress Parameter Contribution")
     st.pyplot(fig1)
 
     # ----------------------------------
-    # 24-Hour Dynamic Projection
+    # Dynamic 24 Hour Projection
     # ----------------------------------
     st.subheader("📈 24-Hour Stress Projection")
-    hours = np.arange(0, 25)
-    amplitude = (stress_percentage / 100) * 20
-    variation = np.sin(np.linspace(0, 2*np.pi, 25)) * amplitude
-    projection = np.clip(stress_percentage + variation, 0, 100)
+    hours = np.arange(0, 24)
+    amplitude = (stress_percentage / 100) * (10 + anxiety_level + caffeine)
+    phase_shift = (work_hours / 24) * np.pi
+    curve = np.sin(np.linspace(0, 2*np.pi, 24) + phase_shift)
+    projection = np.clip(stress_percentage + curve * amplitude, 0, 100)
 
     fig2, ax2 = plt.subplots(figsize=(10,5))
     ax2.plot(hours, projection, marker="o")
     ax2.fill_between(hours, projection, alpha=0.3)
-    ax2.set_xticks(range(0,25))
     ax2.set_ylim(0,100)
+    ax2.set_xticks(range(0,24))
     ax2.set_xlabel("Hour of Day")
     ax2.set_ylabel("Stress Level (%)")
-    ax2.set_title("Projected Stress Fluctuation Over 24 Hours")
+    ax2.set_title("Dynamic Daily Stress Fluctuation")
     ax2.grid(True)
     st.pyplot(fig2)
 
     # ----------------------------------
-    # AI Recommendations
+    # Detailed Psychological Analysis
     # ----------------------------------
-    st.subheader("🧠 Detailed AI Psychological Analysis")
-
-    analysis = []
+    st.subheader("🧠 Detailed Psychological Insights")
+    insights = []
     recommendations = []
 
-    def check(param, value, low, high, high_msg, low_msg, rec):
+    def analyze(param, value, low, high, high_text, low_text, recommendation):
         if value > high:
-            analysis.append(f"🔴 {high_msg}")
-            recommendations.append(rec)
+            insights.append(f"🔴 {high_text}")
+            recommendations.append(recommendation)
         elif value < low:
-            analysis.append(f"🟡 {low_msg}")
+            insights.append(f"🟡 {low_text}")
+            recommendations.append(recommendation)
         else:
-            analysis.append(f"🟢 {param} is within healthy range.")
+            insights.append(f"🟢 {param} is within healthy range.")
 
-    check("Sleep", sleep, 6, 9,
-          "Low Sleep causing cortisol imbalance.",
-          "Oversleeping may signal fatigue.",
-          "Maintain 7–8 hours sleep schedule.")
+    analyze("Sleep", sleep, 6, 9,
+            "Sleep deprivation increasing cortisol and emotional fatigue.",
+            "Excess sleep may signal burnout.",
+            "Maintain consistent 7–8 hour sleep cycle.")
 
-    check("Work Hours", work_hours, 4, 9,
-          "Excessive Workload increasing stress hormones.",
-          "Low engagement may reduce productivity.",
-          "Use structured time management.")
+    analyze("Work Hours", work_hours, 4, 9,
+            "Overworking elevating chronic stress response.",
+            "Low engagement reducing motivation.",
+            "Introduce structured work breaks.")
 
-    check("Caffeine", caffeine, 0, 4,
-          "High caffeine increasing anxiety levels.",
-          "Very low caffeine (no issue).",
-          "Limit caffeine to 1–2 cups daily.")
+    analyze("Caffeine", caffeine, 0, 4,
+            "High caffeine intake intensifying anxiety signals.",
+            "Low caffeine (no issue).",
+            "Limit caffeine to 1–2 cups daily.")
 
-    check("Screen Time", screen_time, 2, 9,
-          "High screen exposure affecting mental recovery.",
-          "Very low digital engagement.",
-          "Implement digital detox before sleep.")
+    analyze("Screen Time", screen_time, 2, 9,
+            "Excessive screen exposure impairing recovery.",
+            "Very low digital interaction.",
+            "Implement evening digital detox.")
 
-    if anxiety_level > 6:
-        analysis.append("🔴 Elevated anxiety strongly contributing to stress.")
-        recommendations.append("Practice breathing techniques & meditation.")
+    analyze("Anxiety Level", anxiety_level, 0, 6,
+            "Elevated anxiety strongly driving stress.",
+            "Low anxiety baseline.",
+            "Practice breathing exercises & mindfulness.")
 
-    if relationship_stress > 6:
-        analysis.append("🔴 Relationship conflicts detected.")
-        recommendations.append("Encourage open communication & boundary setting.")
+    analyze("Relationship Stress", relationship_stress, 0, 6,
+            "Relationship conflicts affecting emotional stability.",
+            "Low relational strain.",
+            "Encourage calm communication & boundaries.")
 
-    if financial_pressure > 6:
-        analysis.append("🔴 Financial stress impacting mental balance.")
-        recommendations.append("Create structured budgeting strategy.")
+    analyze("Financial Pressure", financial_pressure, 0, 6,
+            "Financial strain impacting psychological security.",
+            "Low financial strain.",
+            "Create structured budget planning.")
 
-    if mood < 5:
-        analysis.append("🔴 Low mood reducing emotional resilience.")
-        recommendations.append("Practice gratitude journaling.")
+    analyze("Mood", mood, 5, 9,
+            "Low mood reducing resilience and optimism.",
+            "Extremely elevated mood.",
+            "Practice gratitude journaling.")
 
-    if physical_activity < 4:
-        analysis.append("🔴 Low physical movement reducing endorphins.")
-        recommendations.append("Add 30 mins daily exercise.")
+    analyze("Physical Activity", physical_activity, 4, 9,
+            "Low movement reducing endorphin production.",
+            "Excessive exertion risk.",
+            "Include 30 min daily exercise.")
 
-    if social_interaction < 4:
-        analysis.append("🔴 Social isolation risk detected.")
-        recommendations.append("Increase quality social interaction.")
+    analyze("Social Interaction", social_interaction, 4, 9,
+            "Social isolation risk detected.",
+            "Excessive social fatigue.",
+            "Increase meaningful conversations.")
 
-    # Show Analysis
     st.markdown("### 🔍 Parameter Insights")
-    for item in analysis:
-        st.write(item)
+    for i in insights:
+        st.write(i)
 
-    # Show Recommendations
     st.markdown("### 🤖 AI Personalized Recommendations")
     if recommendations:
-        for rec in set(recommendations):
-            st.write("•", rec)
+        for r in set(recommendations):
+            st.write("•", r)
     else:
-        st.success("Your lifestyle parameters are well balanced. Keep maintaining this routine!")
+        st.success("Your psychological parameters are well balanced.")
 
     if stress_percentage > 75:
-        st.error("⚠️ Consider consulting a mental health professional if high stress persists.")
+        st.error("⚠️ Consider consulting a licensed mental health professional if high stress persists.")
 
 # ----------------------------------
 # Footer
