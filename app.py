@@ -161,15 +161,25 @@ if st.button("🔍 Predict Stress Level"):
     ax.set_title("Parameter Contribution to Stress")
     st.pyplot(fig)
 
-    # Pie Chart
-    st.subheader("📊 Stress Contribution Breakdown (Pie Chart)")
-    labels = list(contributions.keys())
-    values = list(contributions.values())
-    fig1, ax1 = plt.subplots(figsize=(7,7))
-    ax1.pie(values, labels=labels, autopct="%1.1f%%", startangle=140)
-    ax1.set_title("Stress Parameter Contribution")
-    st.pyplot(fig1)
+    
+    
+# Pie Chart (Fixed)
+st.subheader("📊 Stress Contribution Breakdown (Pie Chart)")
 
+labels = list(contributions.keys())
+values = list(contributions.values())
+
+fig1, ax1 = plt.subplots(figsize=(7,7))
+wedges, texts, autotexts = ax1.pie(
+    values, labels=labels, autopct="%1.1f%%", startangle=140,
+    pctdistance=0.85, labeldistance=1.05, textprops={'fontsize': 9}
+)
+# Draw circle for donut effect (optional)
+centre_circle = plt.Circle((0,0),0.70,fc='white')
+fig1.gca().add_artist(centre_circle)
+
+ax1.set_title("Stress Parameter Contribution")
+st.pyplot(fig1)
     # ----------------------------------
     # Dynamic 24 Hour Projection
     # ----------------------------------
