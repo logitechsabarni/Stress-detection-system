@@ -19,7 +19,7 @@ st.markdown("Predict stress percentage, identify root causes, and receive AI-pow
 # ----------------------------------
 # Load Trained Model
 # ----------------------------------
-model = joblib.load("stress_model.pkl")
+model = joblib.load("model/stress_model.pkl")
 
 # ----------------------------------
 # Sidebar Inputs (All 11 Parameters)
