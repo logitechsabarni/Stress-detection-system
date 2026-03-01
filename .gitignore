@@ -24,10 +24,7 @@ __pycache__/
 venv/
 stress detection system_ml/
 
-# -----------------------------
-# Streamlit
-# -----------------------------
-.streamlit/secrets.toml
+
 
 # -----------------------------
 # Logs
